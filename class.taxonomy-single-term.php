@@ -1,12 +1,12 @@
 <?php
 
-if ( ! class_exists( 'Taxonomy_Single_Term' ) ) :
+if ( ! class_exists( 'Advanced_Taxonomy_Metabox' ) ) :
 /**
- * Removes and replaces the built-in taxonomy metabox with <select> or series of <input type="radio" />
+ * Removes and replaces the built-in taxonomy metabox with <select>, series of <input type="checkbox" /> or series of <input type="radio" />
  *
  * Usage:
  *
- * $custom_tax_mb = new Taxonomy_Single_Term( 'custom-tax-slug', array( 'post_type' ), 'type' ); // 'type' can be 'radio' or 'select' (default: radio)
+ * $custom_tax_mb = new Advanced_Taxonomy_Metabox( 'custom-tax-slug', array( 'post_type' ), 'type' ); // 'type' can be 'checkbox', 'radio' or 'select' (default: checkbox)
  *
  * Update optional properties:
  *
@@ -18,16 +18,16 @@ if ( ! class_exists( 'Taxonomy_Single_Term' ) ) :
  * $custom_tax_mb->set( 'allow_new_terms', true );
  *
  * @link  http://codex.wordpress.org/Function_Reference/add_meta_box#Parameters
- * @link  https://github.com/WebDevStudios/Taxonomy_Single_Term/blob/master/README.md
+ * @link  https://github.com/WebDevStudios/Advanced_Taxonomy_Metabox/blob/master/README.md
  * @version  0.2.4
  */
-class Taxonomy_Single_Term {
+class Advanced_Taxonomy_Metabox {
 
 	/**
 	 * For version/feature-checking.
 	 * @since 0.2.4
 	 */
-	const VERSION = '0.2.4';
+	const VERSION = '0.3.0';
 
 	/**
 	 * Post types where metabox should be replaced (defaults to all post_types associated with taxonomy)
@@ -51,7 +51,7 @@ class Taxonomy_Single_Term {
 	protected $taxonomy = false;
 
 	/**
-	 * Taxonomy_Single_Term_Walker object
+	 * Advanced_Taxonomy_Metabox_Walker object
 	 * @since 0.1.0
 	 * @var object
 	 */
@@ -107,10 +107,10 @@ class Taxonomy_Single_Term {
 	protected $single_term_set = array();
 
 	/**
-	 * What input element to use in the taxonomy meta box (radio or select)
+	 * What input element to use in the taxonomy meta box (checkbox, radio or select)
 	 * @var array
 	 */
-	protected $input_element = 'radio';
+	protected $input_element = 'checkbox';
 
 	/**
 	 * Whether adding new terms via the metabox is permitted
@@ -143,7 +143,7 @@ class Taxonomy_Single_Term {
 
 		add_action( 'add_meta_boxes', array( $this, 'add_input_element' ) );
 		add_action( 'admin_footer', array( $this, 'js_checkbox_transform' ) );
-		add_action( 'wp_ajax_taxonomy_single_term_add', array( $this, 'ajax_add_term' ) );
+		add_action( 'wp_ajax_advanced_taxonomy_term_add', array( $this, 'ajax_add_term' ) );
 
 		// Handle bulk-editing
 		if ( isset( $_REQUEST['bulk_edit'] ) && 'Update' == $_REQUEST['bulk_edit'] ) {
@@ -206,7 +206,7 @@ class Taxonomy_Single_Term {
 	 * @todo Abstract inline javascript to it's own file and localize it
 	 */
 	public function input_element() {
-		do_action( 'taxonomy_single_term_metabox_top', $this );
+		do_action( 'advanced_taxonomy_metabox_metabox_top', $this );
 
 		// uses same noncename as default box so no save_post hook needed
 		wp_nonce_field( 'taxonomy_'. $this->slug, 'taxonomy_noncename' );
@@ -232,7 +232,7 @@ class Taxonomy_Single_Term {
 			<div style="clear:both;"></div>
 		</div>
 		<?php
-		do_action( 'taxonomy_single_term_metabox_bottom', $this );
+		do_action( 'advanced_taxonomy_metabox_metabox_bottom', $this );
 	}
 
 	/**
@@ -243,7 +243,7 @@ class Taxonomy_Single_Term {
 		?>
 		<select style="display:block;width:100%;margin-top:12px;" name="<?php echo $this->namefield; ?>" id="<?php echo $this->slug; ?>checklist" class="form-no-clear">
 			<?php if ( ! $this->force_selection ) : ?>
-				<option value="0"><?php echo esc_html( apply_filters( 'taxonomy_single_term_select_none', __( 'None' ) ) ); ?></option>
+				<option value="0"><?php echo esc_html( apply_filters( 'advanced_taxonomy_metabox_select_none', __( 'None' ) ) ); ?></option>
 			<?php endif;
 	}
 
@@ -259,6 +259,16 @@ class Taxonomy_Single_Term {
 					<input id="taxonomy-<?php echo $this->slug; ?>-clear" type="radio" name="<?php echo $this->namefield; ?>" value="0" />
 				</li>
 			<?php endif;
+	}
+
+	/**
+	 * Checkbox wrapper open
+	 * @since  0.2.0
+	 */
+	public function checkbox_open() {
+		?>
+		<ul id="<?php echo $this->slug; ?>checklist" data-wp-lists="list:<?php echo $this->slug; ?>" class="categorychecklist form-no-clear">
+		<?php
 	}
 
 	/**
@@ -286,6 +296,27 @@ class Taxonomy_Single_Term {
 				$('#taxonomy-<?php echo $this->slug; ?>-trigger-clear').click(function(){
 					$('#taxonomy-<?php echo $this->slug; ?> input:checked').prop( 'checked', false );
 					$('#taxonomy-<?php echo $this->slug; ?>-clear').prop( 'checked', true );
+					return false;
+				});
+			});
+		</script>
+		<?php
+	}
+
+	/**
+	 * Checkbox wrapper close
+	 * @since  0.2.0
+	 */
+	public function checkbox_close() {
+		?>
+		</ul>
+		<p style="margin-bottom:0;float:left;width:50%;">
+			<a class="button" id="taxonomy-<?php echo $this->slug; ?>-trigger-clear" href="#"><?php _e( 'Clear' ); ?></a>
+		</p>
+		<script type="text/javascript">
+			jQuery(document).ready(function($){
+				$('#taxonomy-<?php echo $this->slug; ?>-trigger-clear').click(function(){
+					$('#taxonomy-<?php echo $this->slug; ?> input:checked').prop( 'checked', false );
 					return false;
 				});
 			});
@@ -345,7 +376,7 @@ class Taxonomy_Single_Term {
 					}
 					if(termName != null) {
 						var data = {
-							'action'    : 'taxonomy_single_term_add',
+							'action'    : 'advanced_taxonomy_term_add',
 							'term_name' : termName,
 							'taxonomy'  : '<?php echo $this->slug; ?>',
 							'nonce'     : '<?php echo wp_create_nonce( 'taxonomy_'. $this->slug, '_add_term' ); ?>'
@@ -353,7 +384,7 @@ class Taxonomy_Single_Term {
 						$.post( ajaxurl, data, function(response) {
 							window.console.log( 'response', response );
 							if( response.success ){
-								<?php if ( 'radio' == $this->input_element ) : ?>
+								<?php if ( 'select' != $this->input_element ) : ?>
 									$('#taxonomy-<?php echo $this->slug; ?> input:checked').prop( 'checked', false );
 								<?php else : ?>
 									$('#taxonomy-<?php echo $this->slug; ?> option').prop( 'selected', false );
@@ -429,9 +460,15 @@ class Taxonomy_Single_Term {
 		);
 
 		$output = '';
-		$output .= 'radio' == $this->input_element
-			? $this->walker()->start_el_radio( $args )
-			: $this->walker()->start_el_select( $args );
+
+	
+		if($this->input_element == 'select') {
+			$output .= $this->walker()->start_el_select( $args );
+		} else if($this->input_element == 'radio') {
+			$output .= $this->walker()->start_el_radio( $args );
+		} else {
+			$output .= $this->walker()->start_el_checkbox( $args );
+		}
 
 		// $output is handled by reference
 		$this->walker()->end_el( $output, $term );
@@ -503,6 +540,9 @@ class Taxonomy_Single_Term {
 
 			});
 		</script>
+		<style>
+			.categorychecklist { max-height: 200px; overflow-y: auto; }
+		</style>
 		<?php
 	}
 
@@ -595,16 +635,16 @@ class Taxonomy_Single_Term {
 	}
 
 	/**
-	 * Gets the Taxonomy_Single_Term_Walker object for use in term_fields_list and ajax_add_term
+	 * Gets the Advanced_Taxonomy_Metabox_Walker object for use in term_fields_list and ajax_add_term
 	 * @since 0.2.0
-	 * @return object Taxonomy_Single_Term_Walker object
+	 * @return object Advanced_Taxonomy_Metabox_Walker object
 	 */
 	public function walker() {
 		if ( $this->walker ) {
 			return $this->walker;
 		}
 		require_once( 'walker.taxonomy-single-term.php' );
-		$this->walker = new Taxonomy_Single_Term_Walker( $this->taxonomy()->hierarchical, $this->input_element );
+		$this->walker = new Advanced_Taxonomy_Metabox_Walker( $this->taxonomy()->hierarchical, $this->input_element );
 
 		return $this->walker;
 	}
@@ -617,7 +657,7 @@ class Taxonomy_Single_Term {
 	 * @param string $property  Property in object.  Must be set in object.
 	 * @param mixed  $value     Value of property.
 	 *
-	 * @return Taxonomy_Single_Term  Returns Taxonomy_Single_Term object, allows for chaining.
+	 * @return Advanced_Taxonomy_Metabox  Returns Advanced_Taxonomy_Metabox object, allows for chaining.
 	 */
 	public function set( $property, $value ) {
 

@@ -1,6 +1,6 @@
 <?php
 
-if ( ! class_exists( 'Taxonomy_Single_Term_Walker' ) && class_exists( 'Walker' ) ) :
+if ( ! class_exists( 'Advanced_Taxonomy_Metabox_Walker' ) && class_exists( 'Walker' ) ) :
 
 /**
  * Walker to output an unordered list of taxonomy radio <input> elements.
@@ -10,7 +10,7 @@ if ( ! class_exists( 'Taxonomy_Single_Term_Walker' ) && class_exists( 'Walker' )
  * @see wp_terms_checklist()
  * @since 0.1.2
  */
-class Taxonomy_Single_Term_Walker extends Walker {
+class Advanced_Taxonomy_Metabox_Walker extends Walker {
 	public $tree_type = 'category';
 	public $db_fields = array( 'parent' => 'parent', 'id' => 'term_id' ); //TODO: decouple this
 
@@ -31,7 +31,7 @@ class Taxonomy_Single_Term_Walker extends Walker {
 	 * @param array  $args   An array of arguments. @see wp_terms_checklist()
 	 */
 	public function start_lvl( &$output, $depth = 0, $args = array() ) {
-		if ( 'radio' == $this->input_element ) {
+		if ( 'select' != $this->input_element ) {
 			$indent = str_repeat("\t", $depth);
 			$output .= "$indent<ul class='children'>\n";
 		}
@@ -49,7 +49,7 @@ class Taxonomy_Single_Term_Walker extends Walker {
 	 * @param array  $args   An array of arguments. @see wp_terms_checklist()
 	 */
 	public function end_lvl( &$output, $depth = 0, $args = array() ) {
-		if ( 'radio' == $this->input_element ) {
+		if ( 'select' != $this->input_element ) {
 			$indent = str_repeat("\t", $depth);
 			$output .= "$indent</ul>\n";
 		}
@@ -91,9 +91,13 @@ class Taxonomy_Single_Term_Walker extends Walker {
 			'depth'         => $depth,
 		);
 
-		$output .= 'radio' == $this->input_element
-			? $this->start_el_radio( $args )
-			: $this->start_el_select( $args );
+		if($this->input_element == 'select') {
+			$output .= $this->start_el_select( $args );
+		} else if($this->input_element == 'radio') {
+			$output .= $this->start_el_radio( $args );
+		} else {
+			$output .= $this->start_el_checkbox( $args );
+		}
 	}
 
 	/**
@@ -108,6 +112,28 @@ class Taxonomy_Single_Term_Walker extends Walker {
 	public function start_el_radio( $args ) {
 		return "\n".sprintf(
 			'<li id="%s"><label class="selectit"><input value="%s" type="radio" name="%s" id="in-%s" %s %s/>%s</label>',
+			$args['id'],
+			$args['value'],
+			$args['name'],
+			$args['id'],
+			$args['checked'],
+			$args['disabled'],
+			$args['label']
+		);
+	}
+
+	/**
+	 * Creates the opening markup for the checkbox input
+	 *
+	 * @since  0.2.0
+	 *
+	 * @param  array  $args Array of arguments for creating the element
+	 *
+	 * @return string       Opening li element and radio input
+	 */
+	public function start_el_checkbox( $args ) {
+		return "\n".sprintf(
+			'<li id="%s"><label class="selectit"><input value="%s" type="checkbox" name="%s[]" id="in-%s" %s %s/>%s</label>',
 			$args['id'],
 			$args['value'],
 			$args['name'],
